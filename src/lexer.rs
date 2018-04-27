@@ -262,7 +262,9 @@ impl Lexer {
                         ('<', _) => Symbol::Le,
                         ('>', Symbol::Shr) => Symbol::AssignShr,
                         ('>', _) => Symbol::Ge,
+                        ('&', Symbol::LAnd) => Symbol::AssignLAnd,
                         ('&', _) => Symbol::AssignAnd,
+                        ('|', Symbol::LOr) => Symbol::AssignLOr,
                         ('|', _) => Symbol::AssignOr,
                         _ => unreachable!(),
                     };
@@ -272,7 +274,7 @@ impl Lexer {
                     symbol = match c {
                         '<' => Symbol::Lt,
                         '>' => Symbol::Gt,
-                        '&' => Symbol::Ampersand,
+                        '&' => Symbol::And,
                         '|' => Symbol::Or,
                         _ => unreachable!(),
                     };
@@ -344,10 +346,10 @@ fn text_symbols() {
     use token::TokenKind;
 
     let src = "() {} [] , ; : . -> ++ -- 
-             + - * / % ! ~ & << >> < 
-             <= > >= == != ^ | && || 
+             + - * / % ! ~ << >> < 
+             <= > >= == != & | ^ && || 
              ? = += -= *= /= %= <<= 
-             >>= &= ^= |= #";
+             >>= &= |= ^= &&= ||= #";
     let mut lexer = Lexer::new_from_string(src.to_string());
     assert_eq!(
         lexer.read_token().unwrap().kind,
@@ -431,10 +433,6 @@ fn text_symbols() {
     );
     assert_eq!(
         lexer.read_token().unwrap().kind,
-        TokenKind::Symbol(Symbol::Ampersand)
-    );
-    assert_eq!(
-        lexer.read_token().unwrap().kind,
         TokenKind::Symbol(Symbol::Shl)
     );
     assert_eq!(
@@ -467,11 +465,15 @@ fn text_symbols() {
     );
     assert_eq!(
         lexer.read_token().unwrap().kind,
-        TokenKind::Symbol(Symbol::Xor)
+        TokenKind::Symbol(Symbol::And)
     );
     assert_eq!(
         lexer.read_token().unwrap().kind,
         TokenKind::Symbol(Symbol::Or)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Xor)
     );
     assert_eq!(
         lexer.read_token().unwrap().kind,
@@ -523,11 +525,19 @@ fn text_symbols() {
     );
     assert_eq!(
         lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignOr)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
         TokenKind::Symbol(Symbol::AssignXor)
     );
     assert_eq!(
         lexer.read_token().unwrap().kind,
-        TokenKind::Symbol(Symbol::AssignOr)
+        TokenKind::Symbol(Symbol::AssignLAnd)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignLOr)
     );
     assert_eq!(
         lexer.read_token().unwrap().kind,
