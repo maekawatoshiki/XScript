@@ -5,8 +5,9 @@
 [![](http://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 
-*XScript* is a statically-typed script language with JIT.
+**XScript** is a statically-typed script language with JIT.
 
 # Current Status
 
-Creating tokenizer.
+Creating the parser.
+
