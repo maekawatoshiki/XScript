@@ -1,6 +1,7 @@
 [package]
 name = "xscript"
 version = "0.1.0"
-authors = ["maekawatoshiki <konndennsa@gmail.com>"]
+authors = ["uint256_t <maekawatoshiki@github.com>"]
 
 [dependencies]
+clap = "*"

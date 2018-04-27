@@ -4,7 +4,7 @@ use clap::{App, Arg};
 const VERSION_STR: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-    let app = App::new("rcaml")
+    let mut app = App::new("rcaml")
         .version(VERSION_STR)
         .author("uint256_t")
         .about("XScript is a statically-typed script language with JIT.")
@@ -14,13 +14,12 @@ fn main() {
                 .long("version")
                 .help("Show version info"),
         )
-        .arg(Arg::with_name("FILE").help("Input file").index(1))
-        .get_matches();
+        .arg(Arg::with_name("FILE").help("Input file").index(1));
+    let app_matches = app.clone().get_matches();
 
-    if app.is_present("version") {
-        println!("xscript {}", VERSION_STR);
-        return;
-    } else if let Some(filename) = app.value_of("FILE") {
+    if let Some(_filename) = app_matches.value_of("FILE") {
     } else {
+        app.print_help().unwrap();
+        println!();
     }
 }
