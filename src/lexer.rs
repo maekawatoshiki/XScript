@@ -45,11 +45,14 @@ impl Lexer {
             pos: 0,
         }
     }
+}
 
+impl Lexer {
     pub fn read_token(&mut self) -> Result<Token, ()> {
         match self.next_char()? {
             'a'...'z' | 'A'...'Z' | '_' => self.read_identifier(),
             '0'...'9' => self.read_number(),
+            '\"' => self.read_string_literal(),
             c if c.is_whitespace() => {
                 self.skip_whitespace()?;
                 self.read_token()
@@ -57,18 +60,22 @@ impl Lexer {
             _ => Err(()),
         }
     }
+}
 
+impl Lexer {
     pub fn read_identifier(&mut self) -> Result<Token, ()> {
         let pos = self.pos;
         let ident = self.skip_while(|c| c.is_alphanumeric() || c == '_')?;
         Ok(Token::new_identifier(ident, pos))
     }
+}
 
+impl Lexer {
     pub fn read_number(&mut self) -> Result<Token, ()> {
         let pos = self.pos;
         let mut is_float = false;
         let mut last = self.next_char()?;
-        let num = self.skip_while(|c| {
+        let mut num = self.skip_while(|c| {
             is_float = is_float || c == '.';
             let is_f = "eEpP".contains(last) && "+-".contains(c);
             if !c.is_alphanumeric() && c != '.' && !is_f {
@@ -81,11 +88,11 @@ impl Lexer {
         })?;
         if is_float {
             // Ignores suffix
-            num = num.trim_right_matches(|c| match c {
+            let f: f64 = num.trim_right_matches(|c| match c {
                 'a'...'z' | 'A'...'Z' | '+' | '-' => true,
                 _ => false,
-            }).to_string();
-            let f: f64 = num.parse().unwrap();
+            }).parse()
+                .unwrap();
             Ok(Token::new_float(f, pos))
         } else {
             // TODO: suffix supporting
@@ -128,7 +135,18 @@ impl Lexer {
             _ => n,
         })
     }
+}
 
+impl Lexer {
+    pub fn read_string_literal(&mut self) -> Result<Token, ()> {
+        let pos = self.pos;
+        // TODO: support escape sequence
+        let mut s = self.skip_while(|c| c != '\"')?;
+        Ok(Token::new_string(s, pos))
+    }
+}
+
+impl Lexer {
     fn skip_whitespace(&mut self) -> Result<(), ()> {
         self.skip_while(char::is_whitespace).and(Ok(()))
     }
