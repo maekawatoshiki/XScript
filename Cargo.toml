@@ -1,0 +1,6 @@
+[package]
+name = "xscript"
+version = "0.1.0"
+authors = ["maekawatoshiki <konndennsa@gmail.com>"]
+
+[dependencies]
