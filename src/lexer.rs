@@ -322,7 +322,7 @@ impl Lexer {
         F: FnMut(char) -> bool,
     {
         let mut v = vec![];
-        while f(self.next_char()?) {
+        while !self.is_eof() && f(self.next_char()?) {
             v.push(self.skip_char()? as u8);
         }
         Ok(String::from_utf8_lossy(v.as_slice()).to_owned().to_string())
@@ -339,12 +339,58 @@ impl Lexer {
     fn next_char(&self) -> Result<char, ()> {
         self.source[self.pos..].chars().next().ok_or(())
     }
+
+    fn is_eof(&self) -> bool {
+        self.pos >= self.source.len()
+    }
 }
 
 #[test]
-fn text_symbols() {
+fn test_whole() {
     use token::TokenKind;
+    let src = "print 1 (\"He\" + \"llo\")
+              i = 2";
+    let mut lexer = Lexer::new_from_string(src.to_string());
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Identifier("print".to_string())
+    );
+    assert_eq!(lexer.read_token().unwrap().kind, TokenKind::Int(1));
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::OpeningParen)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::String("He".to_string())
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Add)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::String("llo".to_string())
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::ClosingParen)
+    );
+    assert_eq!(lexer.read_token().unwrap().kind, TokenKind::Newline,);
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Identifier("i".to_string())
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Assign)
+    );
+    assert_eq!(lexer.read_token().unwrap().kind, TokenKind::Int(2));
+}
 
+#[test]
+fn test_symbols() {
+    use token::TokenKind;
     let src = "() {} [] , ; : . -> ++ -- 
              + - * / % ! ~ << >> < 
              <= > >= == != & | ^ && || 
