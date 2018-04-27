@@ -100,7 +100,7 @@ impl Lexer {
             let i = if num.len() > 2 && num.chars().nth(1).unwrap() == 'x' {
                 self.read_hex_num(&num[2..])
             } else if num.len() > 2 && num.chars().nth(1).unwrap() == 'b' {
-                self.read_hex_num(&num[2..])
+                self.read_bin_num(&num[2..])
             } else if num.chars().nth(0).unwrap() == '0' {
                 self.read_oct_num(&num[1..])
             } else {
