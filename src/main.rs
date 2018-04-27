@@ -1,6 +1,9 @@
 extern crate clap;
 use clap::{App, Arg};
 
+extern crate xscript;
+use xscript::lexer;
+
 const VERSION_STR: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() {
@@ -17,7 +20,8 @@ fn main() {
         .arg(Arg::with_name("FILE").help("Input file").index(1));
     let app_matches = app.clone().get_matches();
 
-    if let Some(_filename) = app_matches.value_of("FILE") {
+    if let Some(file_name) = app_matches.value_of("FILE") {
+        let mut lexer = lexer::Lexer::new(file_name);
     } else {
         app.print_help().unwrap();
         println!();
