@@ -1,3 +1,4 @@
+#[derive(PartialEq, Debug, Clone)]
 pub struct Token {
     kind: TokenKind, // The kind of token
     pos: usize,      // The position in code this token appears first
@@ -38,6 +39,13 @@ impl Token {
             pos: pos,
         }
     }
+
+    pub fn new_newline(pos: usize) -> Token {
+        Token {
+            kind: TokenKind::Newline,
+            pos: pos,
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -47,6 +55,7 @@ enum TokenKind {
     Float(f64),
     String(String),
     Symbol(Symbol),
+    Newline,
 }
 
 #[derive(PartialEq, Debug, Clone)]

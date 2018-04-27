@@ -53,6 +53,7 @@ impl Lexer {
             'a'...'z' | 'A'...'Z' | '_' => self.read_identifier(),
             '0'...'9' => self.read_number(),
             '\"' => self.read_string_literal(),
+            '\n' => self.read_newline(),
             c if c.is_whitespace() => {
                 self.skip_whitespace()?;
                 self.read_token()
@@ -140,9 +141,17 @@ impl Lexer {
 impl Lexer {
     pub fn read_string_literal(&mut self) -> Result<Token, ()> {
         let pos = self.pos;
+        assert_eq!(self.skip_char()?, '\"');
         // TODO: support escape sequence
-        let mut s = self.skip_while(|c| c != '\"')?;
+        let s = self.skip_while(|c| c != '\"')?;
         Ok(Token::new_string(s, pos))
+    }
+}
+
+impl Lexer {
+    pub fn read_newline(&mut self) -> Result<Token, ()> {
+        assert_eq!(self.skip_char()?, '\n');
+        Ok(Token::new_newline(self.pos))
     }
 }
 

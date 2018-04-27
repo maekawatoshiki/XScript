@@ -22,6 +22,10 @@ fn main() {
 
     if let Some(file_name) = app_matches.value_of("FILE") {
         let mut lexer = lexer::Lexer::new(file_name);
+
+        while let Ok(token) = lexer.read_token() {
+            println!("{:?}", token);
+        }
     } else {
         app.print_help().unwrap();
         println!();
