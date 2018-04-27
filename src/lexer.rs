@@ -269,7 +269,19 @@ impl Lexer {
                     };
                 }
             }
+            '(' => symbol = Symbol::OpeningParen,
+            ')' => symbol = Symbol::ClosingParen,
+            '[' => symbol = Symbol::OpeningBoxBracket,
+            ']' => symbol = Symbol::ClosingBoxBracket,
+            '{' => symbol = Symbol::OpeningBrace,
+            '}' => symbol = Symbol::ClosingBrace,
             '.' => symbol = Symbol::Point,
+            ',' => symbol = Symbol::Comma,
+            ';' => symbol = Symbol::Semicolon,
+            ':' => symbol = Symbol::Colon,
+            '~' => symbol = Symbol::BitwiseNot,
+            '?' => symbol = Symbol::Question,
+            '#' => symbol = Symbol::Hash,
             _ => {}
         };
         Ok(Token::new_symbol(symbol, pos))
