@@ -49,20 +49,93 @@ impl Lexer {
     pub fn read_token(&mut self) -> Result<Token, ()> {
         match self.next_char()? {
             'a'...'z' | 'A'...'Z' | '_' => self.read_identifier(),
-            c if c.is_whitespace() => Err(()),
+            '0'...'9' => self.read_number(),
+            c if c.is_whitespace() => {
+                self.skip_whitespace()?;
+                self.read_token()
+            }
             _ => Err(()),
         }
     }
 
     pub fn read_identifier(&mut self) -> Result<Token, ()> {
         let pos = self.pos;
-        let mut ident = self.skip_while(|c| c.is_alphanumeric() || c == '_')?;
+        let ident = self.skip_while(|c| c.is_alphanumeric() || c == '_')?;
         Ok(Token::new_identifier(ident, pos))
     }
 
-    fn skip_while<F>(&mut self, f: F) -> Result<String, ()>
+    pub fn read_number(&mut self) -> Result<Token, ()> {
+        let pos = self.pos;
+        let mut is_float = false;
+        let mut last = self.next_char()?;
+        let num = self.skip_while(|c| {
+            is_float = is_float || c == '.';
+            let is_f = "eEpP".contains(last) && "+-".contains(c);
+            if !c.is_alphanumeric() && c != '.' && !is_f {
+                is_float = is_float || is_f;
+                false
+            } else {
+                last = c;
+                true
+            }
+        })?;
+        if is_float {
+            // Ignores suffix
+            num = num.trim_right_matches(|c| match c {
+                'a'...'z' | 'A'...'Z' | '+' | '-' => true,
+                _ => false,
+            }).to_string();
+            let f: f64 = num.parse().unwrap();
+            Ok(Token::new_float(f, pos))
+        } else {
+            // TODO: suffix supporting
+            let i = if num.len() > 2 && num.chars().nth(1).unwrap() == 'x' {
+                self.read_hex_num(&num[2..])
+            } else if num.len() > 2 && num.chars().nth(1).unwrap() == 'b' {
+                self.read_hex_num(&num[2..])
+            } else if num.chars().nth(0).unwrap() == '0' {
+                self.read_oct_num(&num[1..])
+            } else {
+                self.read_dec_num(num.as_str())
+            };
+            Ok(Token::new_int(i, pos))
+        }
+    }
+
+    fn read_hex_num(&mut self, num_literal: &str) -> i64 {
+        num_literal.chars().fold(0, |n, c| match c {
+            '0'...'9' | 'A'...'F' | 'a'...'f' => n * 16 + c.to_digit(16).unwrap() as i64,
+            _ => n,
+        })
+    }
+
+    fn read_dec_num(&mut self, num_literal: &str) -> i64 {
+        num_literal.chars().fold(0, |n, c| match c {
+            '0'...'9' => n * 10 + c.to_digit(10).unwrap() as i64,
+            _ => n,
+        })
+    }
+
+    fn read_oct_num(&mut self, num_literal: &str) -> i64 {
+        num_literal.chars().fold(0, |n, c| match c {
+            '0'...'7' => n * 8 + c.to_digit(8).unwrap() as i64,
+            _ => n,
+        })
+    }
+    fn read_bin_num(&mut self, num_literal: &str) -> i64 {
+        num_literal.chars().fold(0, |n, c| match c {
+            '0' | '1' => n * 2 + c.to_digit(2).unwrap() as i64,
+            _ => n,
+        })
+    }
+
+    fn skip_whitespace(&mut self) -> Result<(), ()> {
+        self.skip_while(char::is_whitespace).and(Ok(()))
+    }
+
+    fn skip_while<F>(&mut self, mut f: F) -> Result<String, ()>
     where
-        F: Fn(char) -> bool,
+        F: FnMut(char) -> bool,
     {
         let mut v = vec![];
         while f(self.next_char()?) {
