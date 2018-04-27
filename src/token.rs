@@ -1,7 +1,7 @@
 #[derive(PartialEq, Debug, Clone)]
 pub struct Token {
-    kind: TokenKind, // The kind of token
-    pos: usize,      // The position in code this token appears first
+    pub kind: TokenKind, // The kind of token
+    pub pos: usize,      // The position in code this token appears first
 }
 
 impl Token {
@@ -49,7 +49,7 @@ impl Token {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-enum TokenKind {
+pub enum TokenKind {
     Identifier(String),
     Int(i64),
     Float(f64),

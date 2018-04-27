@@ -203,42 +203,42 @@ impl Lexer {
                 },
             },
             '*' => {
-                if self.next_char_is('=')? {
+                if self.skip_char_is('=')? {
                     symbol = Symbol::AssignMul
                 } else {
                     symbol = Symbol::Asterisk
                 }
             }
             '/' => {
-                if self.next_char_is('=')? {
+                if self.skip_char_is('=')? {
                     symbol = Symbol::AssignDiv
                 } else {
                     symbol = Symbol::Div
                 }
             }
             '%' => {
-                if self.next_char_is('=')? {
+                if self.skip_char_is('=')? {
                     symbol = Symbol::AssignMod
                 } else {
                     symbol = Symbol::Mod
                 }
             }
             '=' => {
-                if self.next_char_is('=')? {
+                if self.skip_char_is('=')? {
                     symbol = Symbol::Eq
                 } else {
                     symbol = Symbol::Assign
                 }
             }
             '^' => {
-                if self.next_char_is('=')? {
+                if self.skip_char_is('=')? {
                     symbol = Symbol::AssignXor
                 } else {
-                    symbol = Symbol::Mod
+                    symbol = Symbol::Xor
                 }
             }
             '!' => {
-                if self.next_char_is('=')? {
+                if self.skip_char_is('=')? {
                     symbol = Symbol::Ne
                 } else {
                     symbol = Symbol::Not
@@ -257,11 +257,13 @@ impl Lexer {
                     single = false;
                 }
                 if self.skip_char_is('=')? {
-                    symbol = match c {
-                        '<' => Symbol::Le,
-                        '>' => Symbol::Ge,
-                        '&' => Symbol::AssignAnd,
-                        '|' => Symbol::AssignOr,
+                    symbol = match (c, symbol) {
+                        ('<', Symbol::Shl) => Symbol::AssignShl,
+                        ('<', _) => Symbol::Le,
+                        ('>', Symbol::Shr) => Symbol::AssignShr,
+                        ('>', _) => Symbol::Ge,
+                        ('&', _) => Symbol::AssignAnd,
+                        ('|', _) => Symbol::AssignOr,
                         _ => unreachable!(),
                     };
                     single = false;
@@ -338,11 +340,197 @@ impl Lexer {
 }
 
 #[test]
-fn text_op() {
+fn text_symbols() {
+    use token::TokenKind;
+
     let src = "() {} [] , ; : . -> ++ -- 
              + - * / % ! ~ & << >> < 
              <= > >= == != ^ | && || 
              ? = += -= *= /= %= <<= 
              >>= &= ^= |= #";
-    Lexer.new_from_string(src)
+    let mut lexer = Lexer::new_from_string(src.to_string());
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::OpeningParen)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::ClosingParen)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::OpeningBrace)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::ClosingBrace)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::OpeningBoxBracket)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::ClosingBoxBracket)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Comma)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Semicolon)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Colon)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Point)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Arrow)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Inc)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Dec)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Add)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Sub)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Asterisk)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Div)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Mod)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Not)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::BitwiseNot)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Ampersand)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Shl)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Shr)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Lt)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Le)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Gt)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Ge)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Eq)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Ne)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Xor)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Or)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::LAnd)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::LOr)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Question)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Assign)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignAdd)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignSub)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignMul)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignDiv)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignMod)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignShl)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignShr)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignAnd)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignXor)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::AssignOr)
+    );
+    assert_eq!(
+        lexer.read_token().unwrap().kind,
+        TokenKind::Symbol(Symbol::Hash)
+    );
 }
