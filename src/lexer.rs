@@ -45,6 +45,13 @@ impl Lexer {
             pos: 0,
         }
     }
+
+    pub fn new_from_string(src: String) -> Lexer {
+        Lexer {
+            source: src,
+            pos: 0,
+        }
+    }
 }
 
 impl Lexer {
@@ -328,4 +335,14 @@ impl Lexer {
     fn next_char(&self) -> Result<char, ()> {
         self.source[self.pos..].chars().next().ok_or(())
     }
+}
+
+#[test]
+fn text_op() {
+    let src = "() {} [] , ; : . -> ++ -- 
+             + - * / % ! ~ & << >> < 
+             <= > >= == != ^ | && || 
+             ? = += -= *= /= %= <<= 
+             >>= &= ^= |= #";
+    Lexer.new_from_string(src)
 }
