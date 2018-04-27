@@ -1,10 +1,7 @@
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::str;
-use std::collections::VecDeque;
-use std::path;
 use std::process;
-use std::collections::{HashMap, HashSet};
 
 use token::{Symbol, Token};
 
@@ -26,7 +23,7 @@ impl Lexer {
                     Colour::Red.bold().paint("error:"),
                     Style::new().underline().paint(source_file_name)
                 );
-                ::std::process::exit(0);
+                process::exit(-1);
             });
 
         let mut file_body = String::new();
@@ -37,7 +34,7 @@ impl Lexer {
                 Colour::Red.bold().paint("error:"),
                 e
             );
-            ::std::process::exit(-1)
+            process::exit(-1)
         });
 
         Lexer {
@@ -83,7 +80,7 @@ impl Lexer {
         let pos = self.pos;
         let mut is_float = false;
         let mut last = self.next_char()?;
-        let mut num = self.skip_while(|c| {
+        let num = self.skip_while(|c| {
             is_float = is_float || c == '.';
             let is_f = "eEpP".contains(last) && "+-".contains(c);
             if !c.is_alphanumeric() && c != '.' && !is_f {
@@ -300,9 +297,9 @@ impl Lexer {
 }
 
 impl Lexer {
-    fn next_char_is(&self, c: char) -> Result<bool, ()> {
-        Ok(self.next_char()? == c)
-    }
+    // fn next_char_is(&self, c: char) -> Result<bool, ()> {
+    //     Ok(self.next_char()? == c)
+    // }
 
     fn skip_char_is(&mut self, c: char) -> Result<bool, ()> {
         if self.next_char()? == c {
