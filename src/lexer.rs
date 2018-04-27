@@ -6,7 +6,7 @@ use std::path;
 use std::process;
 use std::collections::{HashMap, HashSet};
 
-use token::Token;
+use token::{Symbol, Token};
 
 use ansi_term::{Colour, Style};
 
@@ -58,7 +58,7 @@ impl Lexer {
                 self.skip_whitespace()?;
                 self.read_token()
             }
-            _ => Err(()),
+            _ => self.read_symbol(),
         }
     }
 }
@@ -144,6 +144,7 @@ impl Lexer {
         assert_eq!(self.skip_char()?, '\"');
         // TODO: support escape sequence
         let s = self.skip_while(|c| c != '\"')?;
+        assert_eq!(self.skip_char()?, '\"');
         Ok(Token::new_string(s, pos))
     }
 }
@@ -156,6 +157,139 @@ impl Lexer {
 }
 
 impl Lexer {
+    pub fn read_symbol(&mut self) -> Result<Token, ()> {
+        let pos = self.pos;
+        let mut symbol = Symbol::Hash;
+        let c = self.skip_char()?; // ???
+        match c {
+            '+' | '-' => match self.next_char()? {
+                '=' => {
+                    assert_eq!(self.skip_char()?, '=');
+                    if c == '+' {
+                        symbol = Symbol::AssignAdd;
+                    } else if c == '-' {
+                        symbol = Symbol::AssignSub;
+                    }
+                }
+                '>' => {
+                    assert_eq!(self.skip_char()?, '>');
+                    if c == '-' {
+                        symbol = Symbol::Arrow;
+                    }
+                }
+                '+' => {
+                    assert_eq!(self.skip_char()?, '+');
+                    if c == '+' {
+                        symbol = Symbol::Inc;
+                    }
+                }
+                '-' => {
+                    assert_eq!(self.skip_char()?, '-');
+                    if c == '-' {
+                        symbol = Symbol::Dec;
+                    }
+                }
+                _ => if c == '+' {
+                    symbol = Symbol::Add;
+                } else if c == '-' {
+                    symbol = Symbol::Sub;
+                },
+            },
+            '*' => {
+                if self.next_char_is('=')? {
+                    symbol = Symbol::AssignMul
+                } else {
+                    symbol = Symbol::Asterisk
+                }
+            }
+            '/' => {
+                if self.next_char_is('=')? {
+                    symbol = Symbol::AssignDiv
+                } else {
+                    symbol = Symbol::Div
+                }
+            }
+            '%' => {
+                if self.next_char_is('=')? {
+                    symbol = Symbol::AssignMod
+                } else {
+                    symbol = Symbol::Mod
+                }
+            }
+            '=' => {
+                if self.next_char_is('=')? {
+                    symbol = Symbol::Eq
+                } else {
+                    symbol = Symbol::Assign
+                }
+            }
+            '^' => {
+                if self.next_char_is('=')? {
+                    symbol = Symbol::AssignXor
+                } else {
+                    symbol = Symbol::Mod
+                }
+            }
+            '!' => {
+                if self.next_char_is('=')? {
+                    symbol = Symbol::Ne
+                } else {
+                    symbol = Symbol::Not
+                }
+            }
+            '<' | '>' | '&' | '|' => {
+                let mut single = true;
+                if self.skip_char_is(c)? {
+                    symbol = match c {
+                        '<' => Symbol::Shl,
+                        '>' => Symbol::Shr,
+                        '&' => Symbol::LAnd,
+                        '|' => Symbol::LOr,
+                        _ => unreachable!(),
+                    };
+                    single = false;
+                }
+                if self.skip_char_is('=')? {
+                    symbol = match c {
+                        '<' => Symbol::Le,
+                        '>' => Symbol::Ge,
+                        '&' => Symbol::AssignAnd,
+                        '|' => Symbol::AssignOr,
+                        _ => unreachable!(),
+                    };
+                    single = false;
+                }
+                if single {
+                    symbol = match c {
+                        '<' => Symbol::Lt,
+                        '>' => Symbol::Gt,
+                        '&' => Symbol::Ampersand,
+                        '|' => Symbol::Or,
+                        _ => unreachable!(),
+                    };
+                }
+            }
+            '.' => symbol = Symbol::Point,
+            _ => {}
+        };
+        Ok(Token::new_symbol(symbol, pos))
+    }
+}
+
+impl Lexer {
+    fn next_char_is(&self, c: char) -> Result<bool, ()> {
+        Ok(self.next_char()? == c)
+    }
+
+    fn skip_char_is(&mut self, c: char) -> Result<bool, ()> {
+        if self.next_char()? == c {
+            self.skip_char()?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     fn skip_whitespace(&mut self) -> Result<(), ()> {
         self.skip_while(char::is_whitespace).and(Ok(()))
     }
