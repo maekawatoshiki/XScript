@@ -24,6 +24,7 @@ pub enum NodeKind {
     Variable(String),
     BinaryOp(Box<Node>, Box<Node>, BinOp),
     If(Box<Node>, Box<Node>, Box<Node>),
+    Apply(Box<Node>, Vec<Node>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

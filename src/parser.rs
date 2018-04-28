@@ -173,6 +173,7 @@ impl<'a> Parser<'a> {
         }
         Ok(lhs)
     }
+
     fn read_relation(&mut self) -> Result<Node, ()> {
         let mut lhs = self.read_shl_shr()?;
         loop {
@@ -206,6 +207,7 @@ impl<'a> Parser<'a> {
         }
         Ok(lhs)
     }
+
     fn read_shl_shr(&mut self) -> Result<Node, ()> {
         let mut lhs = self.read_add_sub()?;
         loop {
@@ -227,6 +229,7 @@ impl<'a> Parser<'a> {
         }
         Ok(lhs)
     }
+
     fn read_add_sub(&mut self) -> Result<Node, ()> {
         let mut lhs = self.read_mul_div_rem()?;
         loop {
@@ -248,23 +251,24 @@ impl<'a> Parser<'a> {
         }
         Ok(lhs)
     }
+
     fn read_mul_div_rem(&mut self) -> Result<Node, ()> {
-        let mut lhs = self.read_primary()?;
+        let mut lhs = self.read_call()?;
         loop {
             if self.lexer.skip_symbol(Symbol::Asterisk)? {
-                let rhs = self.read_primary()?;
+                let rhs = self.read_call()?;
                 lhs = Node::new(
                     NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Mul),
                     range!(lhs.range.start, rhs.range.end),
                 );
             } else if self.lexer.skip_symbol(Symbol::Div)? {
-                let rhs = self.read_primary()?;
+                let rhs = self.read_call()?;
                 lhs = Node::new(
                     NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Div),
                     range!(lhs.range.start, rhs.range.end),
                 );
             } else if self.lexer.skip_symbol(Symbol::Mod)? {
-                let rhs = self.read_primary()?;
+                let rhs = self.read_call()?;
                 lhs = Node::new(
                     NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Rem),
                     range!(lhs.range.start, rhs.range.end),
@@ -276,15 +280,33 @@ impl<'a> Parser<'a> {
         Ok(lhs)
     }
 
-    pub fn read_primary(&mut self) -> Result<Node, ()> {
+    fn read_call(&mut self) -> Result<Node, ()> {
+        let f = self.read_primary()?;
+        let f_start = f.range.start;
+        let mut args = vec![];
+        while let Ok(arg) = self.read_primary() {
+            args.push(arg);
+        }
+        if args.is_empty() {
+            Ok(f)
+        } else {
+            let args_end = args.last().unwrap().range.end;
+            Ok(Node::new(
+                NodeKind::Apply(Box::new(f), args),
+                range!(f_start, args_end),
+            ))
+        }
+    }
+
+    fn read_primary(&mut self) -> Result<Node, ()> {
         let tok = self.lexer.read_token()?;
         match tok.kind {
             TokenKind::Int(n) => Ok(Node::new(NodeKind::Int(n), tok.range)),
             TokenKind::Float(f) => Ok(Node::new(NodeKind::Float(f), tok.range)),
             TokenKind::Identifier(name) => Ok(Node::new(NodeKind::Variable(name), tok.range)),
             TokenKind::String(s) => Ok(Node::new(NodeKind::String(s), tok.range)),
-            TokenKind::Symbol(sym) => match sym {
-                Symbol::OpeningParen => {
+            TokenKind::Symbol(ref sym) => match sym {
+                &Symbol::OpeningParen => {
                     let expr = self.read_expr();
                     if !self.lexer.skip_symbol(Symbol::ClosingParen)? {
                         // TODO
@@ -292,9 +314,15 @@ impl<'a> Parser<'a> {
                     }
                     expr
                 }
-                _ => Err(()),
+                _ => {
+                    self.lexer.unget(&tok);
+                    Err(())
+                }
             },
-            _ => Err(()),
+            _ => {
+                self.lexer.unget(&tok);
+                Err(())
+            }
         }
     }
 }
