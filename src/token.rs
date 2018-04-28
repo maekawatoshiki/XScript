@@ -1,49 +1,51 @@
+use std::ops::Range;
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct Token {
-    pub kind: TokenKind, // The kind this token represents
-    pub pos: usize,      // The position this token first appears
+    pub kind: TokenKind,     // The kind this token represents
+    pub range: Range<usize>, // The range within this token
 }
 
 impl Token {
-    pub fn new_identifier(name: String, pos: usize) -> Token {
+    pub fn new_identifier(name: String, range: Range<usize>) -> Token {
         Token {
             kind: TokenKind::Identifier(name),
-            pos: pos,
+            range: range,
         }
     }
 
-    pub fn new_int(n: i64, pos: usize) -> Token {
+    pub fn new_int(n: i64, range: Range<usize>) -> Token {
         Token {
             kind: TokenKind::Int(n),
-            pos: pos,
+            range: range,
         }
     }
 
-    pub fn new_float(f: f64, pos: usize) -> Token {
+    pub fn new_float(f: f64, range: Range<usize>) -> Token {
         Token {
             kind: TokenKind::Float(f),
-            pos: pos,
+            range: range,
         }
     }
 
-    pub fn new_string(s: String, pos: usize) -> Token {
+    pub fn new_string(s: String, range: Range<usize>) -> Token {
         Token {
             kind: TokenKind::String(s),
-            pos: pos,
+            range: range,
         }
     }
 
-    pub fn new_symbol(symbol: Symbol, pos: usize) -> Token {
+    pub fn new_symbol(symbol: Symbol, range: Range<usize>) -> Token {
         Token {
             kind: TokenKind::Symbol(symbol),
-            pos: pos,
+            range: range,
         }
     }
 
-    pub fn new_newline(pos: usize) -> Token {
+    pub fn new_newline(range: Range<usize>) -> Token {
         Token {
             kind: TokenKind::Newline,
-            pos: pos,
+            range: range,
         }
     }
 }

@@ -3,8 +3,9 @@ use std::io::prelude::*;
 use std::str;
 use std::process;
 use std::collections::VecDeque;
+use std::ops::Range;
 
-use token::{Symbol, Token};
+use token::{Symbol, Token, TokenKind};
 
 use ansi_term::{Colour, Style};
 
@@ -58,6 +59,10 @@ impl Lexer {
 
 impl Lexer {
     pub fn read_token(&mut self) -> Result<Token, ()> {
+        if self.buf.len() > 0 {
+            return Ok(self.buf.pop_front().unwrap());
+        }
+
         match self.next_char()? {
             'a'...'z' | 'A'...'Z' | '_' => self.read_identifier(),
             '0'...'9' => self.read_number(),
@@ -76,19 +81,40 @@ impl Lexer {
         self.buf.push_back(tok.clone());
         Ok(tok)
     }
+
+    pub fn unget(&mut self, tok: &Token) {
+        self.buf.push_back(tok.clone());
+    }
+}
+
+impl Lexer {
+    pub fn skip_symbol(&mut self, sym: Symbol) -> Result<bool, ()> {
+        let tok = self.read_token()?;
+        if tok.kind == TokenKind::Symbol(sym) {
+            return Ok(true);
+        }
+        self.unget(&tok);
+        Ok(false)
+    }
 }
 
 impl Lexer {
     pub fn read_identifier(&mut self) -> Result<Token, ()> {
-        let pos = self.pos;
+        let start = self.pos;
         let ident = self.skip_while(|c| c.is_alphanumeric() || c == '_')?;
-        Ok(Token::new_identifier(ident, pos))
+        Ok(Token::new_identifier(
+            ident,
+            Range {
+                start: start,
+                end: self.pos,
+            },
+        ))
     }
 }
 
 impl Lexer {
     pub fn read_number(&mut self) -> Result<Token, ()> {
-        let pos = self.pos;
+        let start = self.pos;
         let mut is_float = false;
         let mut last = self.next_char()?;
         let num = self.skip_while(|c| {
@@ -109,7 +135,13 @@ impl Lexer {
                 _ => false,
             }).parse()
                 .unwrap();
-            Ok(Token::new_float(f, pos))
+            Ok(Token::new_float(
+                f,
+                Range {
+                    start: start,
+                    end: self.pos,
+                },
+            ))
         } else {
             // TODO: suffix supporting
             let i = if num.len() > 2 && num.chars().nth(1).unwrap() == 'x' {
@@ -121,7 +153,13 @@ impl Lexer {
             } else {
                 self.read_dec_num(num.as_str())
             };
-            Ok(Token::new_int(i, pos))
+            Ok(Token::new_int(
+                i,
+                Range {
+                    start: start,
+                    end: self.pos,
+                },
+            ))
         }
     }
 
@@ -155,25 +193,34 @@ impl Lexer {
 
 impl Lexer {
     pub fn read_string_literal(&mut self) -> Result<Token, ()> {
-        let pos = self.pos;
+        let start = self.pos;
         assert_eq!(self.skip_char()?, '\"');
         // TODO: support escape sequence
         let s = self.skip_while(|c| c != '\"')?;
         assert_eq!(self.skip_char()?, '\"');
-        Ok(Token::new_string(s, pos))
+        Ok(Token::new_string(
+            s,
+            Range {
+                start: start,
+                end: self.pos,
+            },
+        ))
     }
 }
 
 impl Lexer {
     pub fn read_newline(&mut self) -> Result<Token, ()> {
         assert_eq!(self.skip_char()?, '\n');
-        Ok(Token::new_newline(self.pos))
+        Ok(Token::new_newline(Range {
+            start: self.pos - 1,
+            end: self.pos,
+        }))
     }
 }
 
 impl Lexer {
     pub fn read_symbol(&mut self) -> Result<Token, ()> {
-        let pos = self.pos;
+        let start = self.pos;
         let mut symbol = Symbol::Hash;
         let c = self.skip_char()?; // ???
         match c {
@@ -303,7 +350,13 @@ impl Lexer {
             '#' => symbol = Symbol::Hash,
             _ => {}
         };
-        Ok(Token::new_symbol(symbol, pos))
+        Ok(Token::new_symbol(
+            symbol,
+            Range {
+                start: start,
+                end: self.pos,
+            },
+        ))
     }
 }
 
