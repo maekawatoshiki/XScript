@@ -2,7 +2,7 @@ extern crate clap;
 use clap::{App, Arg};
 
 extern crate xscript;
-use xscript::lexer;
+use xscript::{lexer, parser};
 
 const VERSION_STR: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -22,9 +22,10 @@ fn main() {
 
     if let Some(file_name) = app_matches.value_of("FILE") {
         let mut lexer = lexer::Lexer::new(file_name);
+        let mut parser = parser::Parser::new(&mut lexer);
 
-        while let Ok(token) = lexer.read_token() {
-            println!("{:?}", token);
+        while let Ok(node) = parser.get_node() {
+            println!("{:?}", node);
         }
     } else {
         app.print_help().unwrap();

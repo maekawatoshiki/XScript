@@ -3,8 +3,8 @@ use std::boxed::Box;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Node {
-    kind: NodeKind,      // The kind this node represents
-    range: Range<usize>, // The range within this node (for error handler)
+    pub kind: NodeKind,      // The kind this node represents
+    pub range: Range<usize>, // The range within this node (for error handler)
 }
 
 impl Node {
