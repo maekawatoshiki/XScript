@@ -24,44 +24,95 @@ impl IdManager {
 pub type Id = usize;
 
 pub struct Codegen<'a> {
-    parser: &'a mut Parser<'a>,
+    pub parser: &'a mut Parser<'a>,
+    pub id_manager: IdManager,
+    pub vm_insts: Vec<VMInst>,
 }
 
 impl<'a> Codegen<'a> {
     pub fn new(parser: &'a mut Parser<'a>) -> Codegen<'a> {
-        Codegen { parser: parser }
+        Codegen {
+            parser: parser,
+            id_manager: IdManager::new(),
+            vm_insts: Vec::new(),
+        }
     }
 }
 
 impl<'a> Codegen<'a> {
-    pub fn next_inst(&mut self) -> Result<VMInst, ()> {
-        let node = self.parser.get_node()?;
-        self.gen_inst(node, &HashMap::new())
+    pub fn gen(&mut self) {
+        let mut local_env = HashMap::new();
+        while let Ok(node) = self.parser.get_node() {
+            self.gen_inst(&node, &mut local_env);
+        }
     }
 
-    pub fn gen_inst(&mut self, node: Node, local_env: &HashMap<String, Id>) -> Result<VMInst, ()> {
-        match &node.kind {
-            &NodeKind::Int(n) => Ok(VMInst::PushI(n)),
-            &NodeKind::Float(f) => Ok(VMInst::PushF(f)),
-            &NodeKind::String(ref s) => Ok(VMInst::PushS(s.clone())),
-            &NodeKind::Variable(ref name, ref ty) => self.gen_variable(name, ty, local_env),
-            // &NodeKind::BinaryOp(BinOp::Add, _, _) => VMInst::Add,
-            // &NodeKind::BinaryOp(BinOp::Sub, _, _) => VMInst::Sub,
-            // &NodeKind::BinaryOp(BinOp::Mul, _, _) => VMInst::Mul,
-            // &NodeKind::BinaryOp(BinOp::Div, _, _) => VMInst::Div,
-            // &NodeKind::BinaryOp(BinOp::Rem, _, _) => VMInst::Rem,
-            // &NodeKind::BinaryOp(BinOp::Assign, _, _) => self.gen_store(),
-            _ => Ok(VMInst::Add),
-        }
+    pub fn gen_inst(&mut self, node: &Node, local_env: &mut HashMap<String, Id>) -> Result<(), ()> {
+        match node.kind {
+            NodeKind::Int(n) => self.vm_insts.push(VMInst::PushI(n)),
+            NodeKind::Float(f) => self.vm_insts.push(VMInst::PushF(f)),
+            NodeKind::String(ref s) => self.vm_insts.push(VMInst::PushS(s.clone())),
+            NodeKind::Variable(ref name, ref ty) => self.gen_variable(name, ty, local_env)?,
+            NodeKind::BinaryOp(ref lhs, ref rhs, BinOp::Assign) => {
+                self.gen_store(&*lhs, &*rhs, local_env)?
+            }
+            NodeKind::BinaryOp(ref lhs, ref rhs, ref op) => {
+                self.gen_binop(&*lhs, &*rhs, &*op, local_env)?
+            }
+            _ => {}
+        };
+        Ok(())
+    }
+
+    pub fn gen_binop(
+        &mut self,
+        lhs: &Node,
+        rhs: &Node,
+        op: &BinOp,
+        local_env: &mut HashMap<String, Id>,
+    ) -> Result<(), ()> {
+        self.gen_inst(lhs, local_env)?;
+        self.gen_inst(rhs, local_env)?;
+        self.vm_insts.push(match op {
+            &BinOp::Add => VMInst::Add,
+            &BinOp::Sub => VMInst::Sub,
+            &BinOp::Mul => VMInst::Mul,
+            &BinOp::Div => VMInst::Div,
+            &BinOp::Rem => VMInst::Rem,
+            _ => unimplemented!(),
+        });
+        Ok(())
     }
 
     pub fn gen_variable(
         &mut self,
         name: &String,
         ty: &Option<Type>,
-        local_env: &HashMap<String, Id>,
-    ) -> Result<VMInst, ()> {
-        Err(())
+        local_env: &mut HashMap<String, Id>,
+    ) -> Result<(), ()> {
+        if let Some(id) = local_env.get(name) {
+            self.vm_insts.push(VMInst::LoadV(*id))
+        } else {
+            panic!("TODO: implement err handler");
+        }
+        Ok(())
+    }
+
+    pub fn gen_store(
+        &mut self,
+        lhs: &Node,
+        rhs: &Node,
+        local_env: &mut HashMap<String, Id>,
+    ) -> Result<(), ()> {
+        let var_id = match lhs.kind {
+            NodeKind::Variable(ref name, _) => *local_env
+                .entry(name.clone())
+                .or_insert_with(|| self.id_manager.get_id()),
+            _ => unimplemented!(),
+        };
+        self.gen_inst(rhs, local_env)?;
+        self.vm_insts.push(VMInst::StoreV(var_id));
+        Ok(())
     }
 }
 
