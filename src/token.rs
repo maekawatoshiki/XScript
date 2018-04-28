@@ -1,7 +1,9 @@
+use std::ops::Range;
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct Token {
-    pub kind: TokenKind, // The kind of token
-    pub pos: usize,      // The position in code this token appears first
+    pub kind: TokenKind,     // The kind this token represents
+    pub range: Range<usize>, // The range within this token
 }
 
 impl Token {
