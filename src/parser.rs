@@ -19,7 +19,6 @@ impl<'a> Parser<'a> {
 impl<'a> Parser<'a> {
     pub fn get_node(&mut self) -> Result<Node, ()> {
         match self.lexer.peek()?.kind {
-            TokenKind::Identifier(ref name) if name == "if" => unimplemented!(),
             TokenKind::Newline => {
                 self.lexer.read_token()?; // skip newline
                 self.get_node()
@@ -283,19 +282,20 @@ impl<'a> Parser<'a> {
 
     fn read_call(&mut self) -> Result<Node, ()> {
         let f = self.read_primary()?;
-        let f_start = f.range.start;
-        let mut args = vec![];
-        while let Ok(arg) = self.read_primary() {
-            args.push(arg);
-        }
-        if args.is_empty() {
-            Ok(f)
-        } else {
+        if self.lexer.skip_symbol(Symbol::OpeningParen)? {
+            let f_start = f.range.start;
+            let mut args = vec![];
+            while let Ok(arg) = self.read_primary() {
+                args.push(arg);
+            }
+            assert!(self.lexer.skip_symbol(Symbol::ClosingParen)?);
             let args_end = args.last().unwrap().range.end;
             Ok(Node::new(
                 NodeKind::Apply(Box::new(f), args),
                 range!(f_start, args_end),
             ))
+        } else {
+            Ok(f)
         }
     }
 
