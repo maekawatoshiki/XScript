@@ -56,7 +56,11 @@ impl VM {
                 self.sp += n;
                 self.bp = self.sp;
             }
-            VMInst::StoreV(n) => self.stack[self.bp - 1 - n] = self.stack[self.sp],
+            VMInst::StoreV(n) => self.stack[self.bp - n] = self.stack[self.sp],
+            VMInst::LoadV(n) => {
+                self.sp += 1;
+                self.stack[self.sp] = self.stack[self.bp - n]
+            }
             VMInst::PushI(n) => {
                 self.sp += 1;
                 self.stack[self.sp] = n;
