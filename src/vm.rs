@@ -53,8 +53,8 @@ impl VM {
         match inst {
             VMInst::Entry(n) => {
                 self.bp_stack.push(self.bp);
-                self.bp += n;
                 self.sp += n;
+                self.bp = self.sp;
             }
             VMInst::StoreV(n) => self.stack[self.bp - 1 - n] = self.stack[self.sp],
             VMInst::PushI(n) => {
