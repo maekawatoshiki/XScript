@@ -1,6 +1,8 @@
 use std::ops::Range;
 use std::boxed::Box;
 
+use typing::Type;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Node {
     pub kind: NodeKind,      // The kind this node represents
@@ -21,7 +23,7 @@ pub enum NodeKind {
     Int(i64),
     Float(f64),
     String(String),
-    Variable(String),
+    Variable(String, Option<Type>),
     BinaryOp(Box<Node>, Box<Node>, BinOp),
     If(Box<Node>, Box<Node>, Box<Node>),
     Apply(Box<Node>, Vec<Node>),

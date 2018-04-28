@@ -1,6 +1,7 @@
 use node::{BinOp, Node, NodeKind};
 use token::*;
 use lexer::Lexer;
+use typing::ToType;
 
 use std::ops::Range;
 
@@ -303,7 +304,7 @@ impl<'a> Parser<'a> {
         match tok.kind {
             TokenKind::Int(n) => Ok(Node::new(NodeKind::Int(n), tok.range)),
             TokenKind::Float(f) => Ok(Node::new(NodeKind::Float(f), tok.range)),
-            TokenKind::Identifier(name) => Ok(Node::new(NodeKind::Variable(name), tok.range)),
+            TokenKind::Identifier(name) => self.read_variable(name, tok.range),
             TokenKind::String(s) => Ok(Node::new(NodeKind::String(s), tok.range)),
             TokenKind::Symbol(ref sym) => match sym {
                 &Symbol::OpeningParen => {
@@ -323,6 +324,21 @@ impl<'a> Parser<'a> {
                 self.lexer.unget(&tok);
                 Err(())
             }
+        }
+    }
+
+    fn read_variable(&mut self, var: String, range: Range<usize>) -> Result<Node, ()> {
+        if self.lexer.skip_symbol(Symbol::Colon)? {
+            if let TokenKind::Identifier(name) = self.lexer.read_token()?.kind {
+                Ok(Node::new(
+                    NodeKind::Variable(var, name.as_str().to_type()),
+                    range,
+                ))
+            } else {
+                Err(())
+            }
+        } else {
+            Ok(Node::new(NodeKind::Variable(var, None), range))
         }
     }
 }
