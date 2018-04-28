@@ -2,14 +2,17 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::str;
 use std::process;
+use std::collections::VecDeque;
 
 use token::{Symbol, Token};
 
 use ansi_term::{Colour, Style};
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Lexer {
     source: String,
     pos: usize,
+    buf: VecDeque<Token>,
 }
 
 impl Lexer {
@@ -40,6 +43,7 @@ impl Lexer {
         Lexer {
             source: file_body,
             pos: 0,
+            buf: VecDeque::new(),
         }
     }
 
@@ -47,6 +51,7 @@ impl Lexer {
         Lexer {
             source: src,
             pos: 0,
+            buf: VecDeque::new(),
         }
     }
 }
@@ -64,6 +69,12 @@ impl Lexer {
             }
             _ => self.read_symbol(),
         }
+    }
+
+    pub fn peek(&mut self) -> Result<Token, ()> {
+        let tok = self.read_token()?;
+        self.buf.push_back(tok.clone());
+        Ok(tok)
     }
 }
 

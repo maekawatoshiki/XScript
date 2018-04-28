@@ -7,6 +7,15 @@ pub struct Node {
     range: Range<usize>, // The range within this node (for error handler)
 }
 
+impl Node {
+    pub fn new(kind: NodeKind, range: Range<usize>) -> Node {
+        Node {
+            kind: kind,
+            range: range,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
     Int(i64),
