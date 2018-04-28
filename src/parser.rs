@@ -62,7 +62,7 @@ impl<'a> Parser<'a> {
             ); })
         }
 
-        let mut lhs = self.read_primary()?;
+        let mut lhs = self.read_lor()?;
         while let Ok(tok) = self.lexer.read_token() {
             match tok.kind {
                 TokenKind::Symbol(Symbol::Assign) => {
@@ -87,6 +87,190 @@ impl<'a> Parser<'a> {
                     self.lexer.unget(&tok);
                     break;
                 }
+            }
+        }
+        Ok(lhs)
+    }
+
+    fn read_lor(&mut self) -> Result<Node, ()> {
+        let mut lhs = try!(self.read_land());
+        while self.lexer.skip_symbol(Symbol::LOr)? {
+            let rhs = try!(self.read_land());
+            lhs = Node::new(
+                NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::LOr),
+                range!(lhs.range.start, rhs.range.end),
+            );
+        }
+        Ok(lhs)
+    }
+
+    fn read_land(&mut self) -> Result<Node, ()> {
+        let mut lhs = try!(self.read_or());
+        while self.lexer.skip_symbol(Symbol::LAnd)? {
+            let rhs = try!(self.read_or());
+            lhs = Node::new(
+                NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::LAnd),
+                range!(lhs.range.start, rhs.range.end),
+            );
+        }
+        Ok(lhs)
+    }
+
+    fn read_or(&mut self) -> Result<Node, ()> {
+        let mut lhs = self.read_xor()?;
+        while self.lexer.skip_symbol(Symbol::Or)? {
+            let rhs = self.read_xor()?;
+            lhs = Node::new(
+                NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Or),
+                range!(lhs.range.start, rhs.range.end),
+            );
+        }
+        Ok(lhs)
+    }
+
+    fn read_xor(&mut self) -> Result<Node, ()> {
+        let mut lhs = self.read_and()?;
+        while self.lexer.skip_symbol(Symbol::Xor)? {
+            let rhs = self.read_and()?;
+            lhs = Node::new(
+                NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Xor),
+                range!(lhs.range.start, rhs.range.end),
+            );
+        }
+        Ok(lhs)
+    }
+
+    fn read_and(&mut self) -> Result<Node, ()> {
+        let mut lhs = self.read_eq_ne()?;
+        while self.lexer.skip_symbol(Symbol::And)? {
+            let rhs = self.read_eq_ne()?;
+            lhs = Node::new(
+                NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::And),
+                range!(lhs.range.start, rhs.range.end),
+            );
+        }
+        Ok(lhs)
+    }
+
+    fn read_eq_ne(&mut self) -> Result<Node, ()> {
+        let mut lhs = self.read_relation()?;
+        loop {
+            if self.lexer.skip_symbol(Symbol::Eq)? {
+                let rhs = self.read_relation()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Eq),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else if self.lexer.skip_symbol(Symbol::Ne)? {
+                let rhs = self.read_relation()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Ne),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else {
+                break;
+            }
+        }
+        Ok(lhs)
+    }
+    fn read_relation(&mut self) -> Result<Node, ()> {
+        let mut lhs = self.read_shl_shr()?;
+        loop {
+            if self.lexer.skip_symbol(Symbol::Lt)? {
+                let rhs = self.read_shl_shr()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Lt),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else if self.lexer.skip_symbol(Symbol::Le)? {
+                let rhs = self.read_shl_shr()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Le),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else if self.lexer.skip_symbol(Symbol::Gt)? {
+                let rhs = self.read_shl_shr()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Gt),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else if self.lexer.skip_symbol(Symbol::Ge)? {
+                let rhs = self.read_shl_shr()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Ge),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else {
+                break;
+            }
+        }
+        Ok(lhs)
+    }
+    fn read_shl_shr(&mut self) -> Result<Node, ()> {
+        let mut lhs = self.read_add_sub()?;
+        loop {
+            if self.lexer.skip_symbol(Symbol::Shl)? {
+                let rhs = self.read_add_sub()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Shl),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else if self.lexer.skip_symbol(Symbol::Shr)? {
+                let rhs = self.read_add_sub()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Shr),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else {
+                break;
+            }
+        }
+        Ok(lhs)
+    }
+    fn read_add_sub(&mut self) -> Result<Node, ()> {
+        let mut lhs = self.read_mul_div_rem()?;
+        loop {
+            if self.lexer.skip_symbol(Symbol::Add)? {
+                let rhs = self.read_mul_div_rem()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Add),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else if self.lexer.skip_symbol(Symbol::Sub)? {
+                let rhs = self.read_mul_div_rem()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Sub),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else {
+                break;
+            }
+        }
+        Ok(lhs)
+    }
+    fn read_mul_div_rem(&mut self) -> Result<Node, ()> {
+        let mut lhs = self.read_primary()?;
+        loop {
+            if self.lexer.skip_symbol(Symbol::Asterisk)? {
+                let rhs = self.read_primary()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Mul),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else if self.lexer.skip_symbol(Symbol::Div)? {
+                let rhs = self.read_primary()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Div),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else if self.lexer.skip_symbol(Symbol::Mod)? {
+                let rhs = self.read_primary()?;
+                lhs = Node::new(
+                    NodeKind::BinaryOp(Box::new(lhs.clone()), Box::new(rhs.clone()), BinOp::Rem),
+                    range!(lhs.range.start, rhs.range.end),
+                );
+            } else {
+                break;
             }
         }
         Ok(lhs)
