@@ -16,4 +16,7 @@ pub enum VMInst {
 
     StoreV(usize),
     LoadV(usize),
+
+    Entry(usize),
+    Ret,
 }

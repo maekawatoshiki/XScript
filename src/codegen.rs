@@ -43,8 +43,10 @@ impl<'a> Codegen<'a> {
     pub fn gen(&mut self) {
         let mut local_env = HashMap::new();
         while let Ok(node) = self.parser.get_node() {
-            self.gen_inst(&node, &mut local_env);
+            self.gen_inst(&node, &mut local_env).unwrap();
         }
+        self.vm_insts.insert(0, VMInst::Entry(local_env.len()));
+        self.vm_insts.push(VMInst::Ret);
     }
 
     pub fn gen_inst(&mut self, node: &Node, local_env: &mut HashMap<String, Id>) -> Result<(), ()> {

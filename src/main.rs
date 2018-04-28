@@ -2,7 +2,7 @@ extern crate clap;
 use clap::{App, Arg};
 
 extern crate xscript;
-use xscript::{codegen, lexer, parser};
+use xscript::{codegen, lexer, parser, vm};
 
 const VERSION_STR: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -24,9 +24,11 @@ fn main() {
         let mut lexer = lexer::Lexer::new(file_name);
         let mut parser = parser::Parser::new(&mut lexer);
         let mut codegen = codegen::Codegen::new(&mut parser);
+        let mut vm = vm::VM::new();
 
         codegen.gen();
         println!("{:?}", codegen.vm_insts);
+        vm.run(codegen.vm_insts);
     } else {
         app.print_help().unwrap();
         println!();
